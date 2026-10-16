@@ -10,7 +10,14 @@ export function isValidTimeZone(tz: string): boolean {
 }
 
 const timeZone = z.string().refine(isValidTimeZone, 'Unknown time zone');
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+const dateOnly = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
+  .refine((v) => {
+    const [y, m, d] = v.split('-').map(Number) as [number, number, number];
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === v;
+  }, 'Not a valid calendar date');
 const email = z.string().trim().toLowerCase().email();
 
 export const roleSchema = z.enum(['owner', 'editor', 'viewer']);

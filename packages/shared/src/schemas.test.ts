@@ -42,6 +42,14 @@ describe('schemas', () => {
     expect(doseQuerySchema.safeParse({ from: '2026-01-01', to: '2026-01-07' }).success).toBe(true);
     expect(doseQuerySchema.safeParse({ from: 'yesterday', to: '2026-01-07' }).success).toBe(false);
   });
+  it('dates must exist on the calendar', () => {
+    const q = (d: string) => doseQuerySchema.safeParse({ from: d, to: '2026-01-07' }).success;
+    expect(q('2026-02-31')).toBe(false);
+    expect(q('2026-13-01')).toBe(false);
+    expect(q('2026-02-28')).toBe(true);
+    expect(q('2028-02-29')).toBe(true);
+    expect(q('2027-02-29')).toBe(false);
+  });
   it('isValidTimeZone', () => {
     expect(isValidTimeZone('Europe/Paris')).toBe(true);
     expect(isValidTimeZone('Nope/Zone')).toBe(false);
