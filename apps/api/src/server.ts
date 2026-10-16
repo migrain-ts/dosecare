@@ -10,7 +10,7 @@ await runMigrations(db);
 const app = createApp({
   db,
   clock: new SystemClock(),
-  appUrl: process.env.APP_URL ?? 'http://localhost:3001',
+  appUrl: process.env.APP_URL ?? 'http://localhost:3100',
   secureCookies: process.env.NODE_ENV === 'production' && process.env.INSECURE_COOKIES !== '1',
   trustProxy: process.env.TRUST_PROXY === '1',
 });

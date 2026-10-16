@@ -59,7 +59,7 @@ afterAll(async () => {
 
 describe('route coverage', () => {
   it('every registered route is in the matrix or explicitly exempt', () => {
-    const app = createApp({ db: t.db, clock: t.clock, appUrl: 'http://localhost:3001' });
+    const app = createApp({ db: t.db, clock: t.clock, appUrl: 'http://localhost:3100' });
     const registered = app.routes.filter((r) => r.method !== 'ALL').map((r) => `${r.method} ${r.path}`);
     const known = new Set([...MATRIX.map((r) => `${r.method} ${r.pattern}`), ...NO_ROLE_ROUTES]);
     const missing = registered.filter((r) => !known.has(r));

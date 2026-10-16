@@ -24,7 +24,7 @@ describe('invitations', () => {
     const rows = await t.pool.query('select token_hash from invitations where email=$1', ['friend@example.com']);
     expect(rows.rows[0].token_hash).toBe(createHash('sha256').update(token).digest('hex'));
     expect(rows.rows[0].token_hash).not.toBe(token);
-    expect(payload.link).toBe(`http://localhost:3001/invitations/${token}`);
+    expect(payload.link).toBe(`http://localhost:3100/invitations/${token}`);
     expect(payload.role).toBe('editor');
   });
 

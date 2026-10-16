@@ -13,7 +13,7 @@ afterAll(async () => {
 
 describe('OpenAPI', () => {
   it('documents every registered route', () => {
-    const app = createApp({ db: t.db, clock: t.clock, appUrl: 'http://localhost:3001' });
+    const app = createApp({ db: t.db, clock: t.clock, appUrl: 'http://localhost:3100' });
     const registered = app.routes
       .filter((r) => r.method !== 'ALL' && !['/openapi.json', '/docs'].includes(r.path))
       .map((r) => `${r.method} ${r.path}`);

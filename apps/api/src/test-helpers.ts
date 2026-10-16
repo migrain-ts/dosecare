@@ -10,7 +10,7 @@ export type TestApp = Awaited<ReturnType<typeof makeApp>>;
 export async function makeApp(opts: { trustProxy?: boolean } = {}) {
   const t = await createTestDb();
   const clock = new FakeClock(new Date('2026-01-05T08:00:00Z'));
-  const app = createApp({ db: t.db, clock, appUrl: 'http://localhost:3001', ...opts });
+  const app = createApp({ db: t.db, clock, appUrl: 'http://localhost:3100', ...opts });
   return { app, db: t.db, pool: t.pool, clock, close: t.close };
 }
 

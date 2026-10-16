@@ -20,9 +20,9 @@ describe('renderEmail', () => {
     expect(m.subject).toBe('Low stock: Aspirin for Mum (about 2.5 days left)');
   });
   it('invitation carries the link', () => {
-    const m = renderEmail('invitation', { link: 'http://localhost:3001/invitations/abc', recipientName: 'Mum', inviterName: 'Ada', role: 'editor' });
+    const m = renderEmail('invitation', { link: 'http://localhost:3100/invitations/abc', recipientName: 'Mum', inviterName: 'Ada', role: 'editor' });
     expect(m.subject).toBe("Ada invited you to help with Mum's medication");
-    expect(m.text).toContain('http://localhost:3001/invitations/abc');
+    expect(m.text).toContain('http://localhost:3100/invitations/abc');
   });
   it('escapes HTML in user supplied names', () => {
     const m = renderEmail('reminder', { ...dose, medication: '<script>x</script>' });
