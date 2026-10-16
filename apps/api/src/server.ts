@@ -7,6 +7,10 @@ const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is required');
 const { db } = createDb(url);
 await runMigrations(db);
+if (process.env.SEED_DEMO === '1') {
+  const { seedDemo } = await import('./seed');
+  console.log('[api] demo seed', await seedDemo(db, new SystemClock()));
+}
 const app = createApp({
   db,
   clock: new SystemClock(),

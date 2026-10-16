@@ -9,7 +9,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p .",
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "seed": "tsx -e \"import('./src/seed.ts').then(async ({seedDemo})=>{const {createDb}=await import('@dosecare/db');const {SystemClock}=await import('@dosecare/shared');const {db,pool}=createDb(process.env.DATABASE_URL);console.log(await seedDemo(db,new SystemClock()));await pool.end();})\""
   },
   "dependencies": {
     "@dosecare/db": "0.0.0",
