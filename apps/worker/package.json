@@ -1,0 +1,22 @@
+{
+  "name": "@dosecare/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p .",
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "8.0.2"
+  },
+  "dependencies": {
+    "@dosecare/db": "0.0.0",
+    "@dosecare/shared": "0.0.0",
+    "drizzle-orm": "0.45.4",
+    "nodemailer": "10.1.2"
+  }
+}
