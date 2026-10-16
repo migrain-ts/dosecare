@@ -4,7 +4,7 @@ import type { Clock } from '@dosecare/shared';
 import { authRoutes } from './auth/routes';
 import { errorHandler } from './errors';
 
-export type Deps = { db: Db; clock: Clock; secureCookies?: boolean };
+export type Deps = { db: Db; clock: Clock; secureCookies?: boolean; trustProxy?: boolean };
 export type Env = {
   Variables: { user: { id: string; email: string; name: string }; deps: Deps };
 };
@@ -16,6 +16,7 @@ export function createApp(deps: Deps) {
       await next();
     })
     .onError(errorHandler)
+    .notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))
     .route('/auth', authRoutes(deps));
 }
 

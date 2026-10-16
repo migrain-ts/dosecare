@@ -32,6 +32,28 @@ describe('registration', () => {
     expect(dup.status).toBe(409);
     const bad = await call(t.app, null, 'POST', '/auth/register', { email: 'nope', password: 'x', name: '' });
     expect(bad.status).toBe(400);
+    const body = (await bad.json()) as { error: { code: string; message: string } };
+    expect(Object.keys(body)).toEqual(['error']);
+    expect(body.error.code).toBe('invalid_request');
+    expect(body.error.message).toContain('email');
+  });
+
+  it('returns the standard 400 shape for malformed JSON', async () => {
+    const res = await t.app.request('/auth/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{not json',
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('invalid_request');
+    expect(typeof body.error.message).toBe('string');
+  });
+
+  it('returns the standard 404 shape for unknown routes', async () => {
+    const res = await call(t.app, null, 'GET', '/nope');
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: { code: 'not_found', message: 'Not found' } });
   });
 
   it('never stores the raw session token', async () => {
@@ -80,16 +102,44 @@ describe('login and sessions', () => {
     const res = await t.app.request('/auth/me', { headers: { authorization: `Bearer ${token}` } });
     expect(res.status).toBe(200);
   });
+});
 
-  it('rate limits repeated failed logins', async () => {
+describe('rate limiting', () => {
+  it('rate limits failed logins: the 11th attempt is the first 429, and it recovers', async () => {
+    const f = await makeApp();
     const statuses: number[] = [];
     for (let i = 0; i < 12; i++) {
-      const r = await call(t.app, null, 'POST', '/auth/login', { email: 'victim@example.com', password: 'wrong wrong wrong' });
+      const r = await call(f.app, null, 'POST', '/auth/login', { email: 'victim@example.com', password: 'wrong wrong wrong' });
       statuses.push(r.status);
     }
-    expect(statuses).toContain(429);
-    t.clock.advanceMinutes(16);
-    const after = await call(t.app, null, 'POST', '/auth/login', { email: 'victim@example.com', password: 'wrong wrong wrong' });
+    expect(statuses).toEqual([...Array<number>(10).fill(401), 429, 429]);
+    f.clock.advanceMinutes(16);
+    const after = await call(f.app, null, 'POST', '/auth/login', { email: 'victim@example.com', password: 'wrong wrong wrong' });
     expect(after.status).toBe(401);
+    await f.close();
+  });
+
+  it('ignores a spoofed x-forwarded-for when trustProxy is off', async () => {
+    const f = await makeApp();
+    const statuses: number[] = [];
+    for (let i = 0; i < 11; i++) {
+      const r = await call(f.app, null, 'POST', '/auth/login', { email: 'spoof@example.com', password: 'wrong wrong wrong' }, { 'x-forwarded-for': `9.9.9.${i}` });
+      statuses.push(r.status);
+    }
+    expect(statuses).toEqual([...Array<number>(10).fill(401), 429]);
+    await f.close();
+  });
+
+  it('uses the rightmost x-forwarded-for entry as an independent bucket', async () => {
+    const p = await makeApp({ trustProxy: true });
+    try {
+      const login = (ip: string, spoof = '1.1.1.1') =>
+        call(p.app, null, 'POST', '/auth/login', { email: 'x@example.com', password: 'wrong wrong wrong' }, { 'x-forwarded-for': `${spoof}, ${ip}` });
+      for (let i = 0; i < 10; i++) expect((await login('10.0.0.1', `evil${i}`)).status).toBe(401);
+      expect((await login('10.0.0.1', 'another')).status).toBe(429);
+      expect((await login('10.0.0.2')).status).toBe(401);
+    } finally {
+      await p.close();
+    }
   });
 });

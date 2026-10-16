@@ -1,4 +1,3 @@
-import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
@@ -7,14 +6,15 @@ import { loginSchema, registerSchema } from '@dosecare/shared';
 import type { Env } from '../app';
 import { ApiError } from '../errors';
 import { rateLimit } from '../rate-limit';
+import { validator } from '../validate';
 import { createRecipient } from '../services/recipients';
 import { requireAuth, SESSION_COOKIE, tokenFrom } from './middleware';
 import { DUMMY_HASH, hashPassword, verifyPassword } from './password';
 import { createSession, revokeSession, SESSION_TTL_MS } from './sessions';
 
 export function authRoutes(deps: import('../app').Deps) {
-  const loginLimiter = rateLimit({ clock: deps.clock, windowMs: 15 * 60_000, max: 10 });
-  const registerLimiter = rateLimit({ clock: deps.clock, windowMs: 15 * 60_000, max: 50 });
+  const loginLimiter = rateLimit({ clock: deps.clock, trustProxy: deps.trustProxy, windowMs: 15 * 60_000, max: 10 });
+  const registerLimiter = rateLimit({ clock: deps.clock, trustProxy: deps.trustProxy, windowMs: 15 * 60_000, max: 50 });
 
   const issueCookie = (c: Parameters<typeof setCookie>[0], token: string) =>
     setCookie(c, SESSION_COOKIE, token, {
@@ -26,7 +26,7 @@ export function authRoutes(deps: import('../app').Deps) {
     });
 
   return new Hono<Env>()
-    .post('/register', registerLimiter, zValidator('json', registerSchema), async (c) => {
+    .post('/register', registerLimiter, validator('json', registerSchema), async (c) => {
       const body = c.req.valid('json');
       const { db, clock } = c.get('deps');
       const [existing] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, body.email));
@@ -39,7 +39,7 @@ export function authRoutes(deps: import('../app').Deps) {
       issueCookie(c, await createSession(db, user!.id, clock.now()));
       return c.json({ user: { id: user!.id, email: user!.email, name: user!.name }, recipient }, 201);
     })
-    .post('/login', loginLimiter, zValidator('json', loginSchema), async (c) => {
+    .post('/login', loginLimiter, validator('json', loginSchema), async (c) => {
       const body = c.req.valid('json');
       const { db, clock } = c.get('deps');
       const [user] = await db.select().from(schema.users).where(eq(schema.users.email, body.email));

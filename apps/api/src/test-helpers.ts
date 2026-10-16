@@ -4,10 +4,10 @@ import { createApp } from './app';
 
 export type TestApp = Awaited<ReturnType<typeof makeApp>>;
 
-export async function makeApp() {
+export async function makeApp(opts: { trustProxy?: boolean } = {}) {
   const t = await createTestDb();
   const clock = new FakeClock(new Date('2026-01-05T08:00:00Z'));
-  const app = createApp({ db: t.db, clock });
+  const app = createApp({ db: t.db, clock, ...opts });
   return { app, db: t.db, pool: t.pool, clock, close: t.close };
 }
 
@@ -17,8 +17,9 @@ export function call(
   method: string,
   path: string,
   body?: unknown,
+  extraHeaders: Record<string, string> = {},
 ) {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...extraHeaders };
   if (cookie) headers.cookie = cookie;
   if (body !== undefined) headers['content-type'] = 'application/json';
   return app.request(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
