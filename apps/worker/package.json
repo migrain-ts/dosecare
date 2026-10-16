@@ -11,6 +11,7 @@
     "start": "tsx src/main.ts"
   },
   "devDependencies": {
+    "@dosecare/api": "0.0.0",
     "@types/nodemailer": "8.0.2"
   },
   "dependencies": {

@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { schema } from '@dosecare/db';
 import { call, makeApp, makeFixture, register, type TestApp } from '../test-helpers';
 
 let t: TestApp;
@@ -73,5 +75,29 @@ describe('recipients', () => {
     const f = await makeFixture(t);
     expect((await call(t.app, f.owner.cookie, 'DELETE', `/recipients/${f.recipientId}`)).status).toBe(204);
     expect((await call(t.app, f.viewer.cookie, 'GET', `/recipients/${f.recipientId}`)).status).toBe(404);
+  });
+
+  it('changing the time zone drops future pending doses (worker regenerates them) and keeps past or recorded ones', async () => {
+    const f = await makeFixture(t);
+    const now = t.clock.now().getTime();
+    const at = (h: number) => new Date(now + h * 3600_000);
+    const base = { scheduleId: f.scheduleId, medicationId: f.medicationId, recipientId: f.recipientId, quantity: 1 };
+    const [pastPending, futureTaken, futureSkipped] = await t.db
+      .insert(schema.doseEvents)
+      .values([
+        { ...base, scheduledAt: at(-2) },
+        { ...base, scheduledAt: at(3), status: 'taken', takenAt: at(0) },
+        { ...base, scheduledAt: at(5), status: 'skipped' },
+      ])
+      .returning();
+    const ids = async () => (await t.db.select({ id: schema.doseEvents.id }).from(schema.doseEvents).where(eq(schema.doseEvents.recipientId, f.recipientId))).map((r) => r.id).sort();
+
+    // A PATCH that does not change the zone leaves doses alone.
+    expect((await call(t.app, f.owner.cookie, 'PATCH', `/recipients/${f.recipientId}`, { displayName: 'Renamed', timeZone: 'UTC' })).status).toBe(200);
+    expect(await ids()).toContain(f.doseId);
+
+    const res = await call(t.app, f.owner.cookie, 'PATCH', `/recipients/${f.recipientId}`, { timeZone: 'America/New_York' });
+    expect(res.status).toBe(200);
+    expect(await ids()).toEqual([pastPending!.id, futureTaken!.id, futureSkipped!.id].sort());
   });
 });

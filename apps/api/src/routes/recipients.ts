@@ -6,6 +6,7 @@ import { recipientCreateSchema, recipientUpdateSchema } from '@dosecare/shared';
 import type { Env } from '../app';
 import { requireAuth } from '../auth/middleware';
 import { requireRole } from '../authz';
+import { deleteFuturePendingDoses } from '../services/doses';
 import { createRecipient } from '../services/recipients';
 
 export function recipientRoutes() {
@@ -37,9 +38,17 @@ export function recipientRoutes() {
     })
     .patch('/:id', requireRole('owner'), validator('json', recipientUpdateSchema), async (c) => {
       const body = c.req.valid('json');
-      const db = c.get('deps').db;
-      if (Object.keys(body).length > 0) await db.update(schema.recipients).set(body).where(eq(schema.recipients.id, c.get('recipientId')));
-      const [r] = await db.select().from(schema.recipients).where(eq(schema.recipients.id, c.get('recipientId')));
+      const { db, clock } = c.get('deps');
+      const id = c.get('recipientId');
+      const r = await db.transaction(async (tx) => {
+        const [before] = await tx.select().from(schema.recipients).where(eq(schema.recipients.id, id)).for('update');
+        if (Object.keys(body).length === 0) return before;
+        const [after] = await tx.update(schema.recipients).set(body).where(eq(schema.recipients.id, id)).returning();
+        // Pending doses already materialized in the old zone would not collide with the new-zone instants the worker
+        // creates next, so drop them here; the worker regenerates them on its next cycle.
+        if (after!.timeZone !== before!.timeZone) await deleteFuturePendingDoses(tx, { recipientId: id }, clock.now());
+        return after;
+      });
       return c.json({ recipient: r });
     })
     .delete('/:id', requireRole('owner'), async (c) => {

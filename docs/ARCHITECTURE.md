@@ -85,7 +85,7 @@ Stock is a ledger: remaining quantity is the sum of `stock_movements.quantity`. 
 
 `apps/worker/src/main.ts` starts `createLifecycle`, which runs `runCycle` every `CYCLE_SECONDS` (default 30, 10 in Compose), logs one JSON line of counts per cycle and, on SIGTERM or SIGINT, waits for a running cycle and closes the pool. `runCycle` (`cycle.ts`) does, in order:
 
-1. `materializeDoses`: for active medications, computes dose times from 60 minutes ago to 48 hours ahead in each recipient's time zone and inserts them with `ON CONFLICT DO NOTHING`.
+1. `materializeDoses`: for active medications, computes dose times from 60 minutes ago to 48 hours ahead in each recipient's time zone and inserts them with `ON CONFLICT DO NOTHING`. Editing or deleting a schedule, archiving a medication, or changing a recipient's time zone (`PATCH /recipients/:id`, in the same transaction as the update) deletes the affected future pending doses (`deleteFuturePendingDoses`), so this step regenerates them instead of adding a second copy.
 2. `enqueueReminders`: pending doses that became due within the last 30 minutes, for members who enabled reminders.
 3. `enqueueMissedAlerts`: pending or missed doses older than each member's alert delay (within 24 hours), for members who enabled the missed alert.
 4. `markMissed`: pending doses more than 120 minutes past due become `missed` (they can still be recorded as taken later).
