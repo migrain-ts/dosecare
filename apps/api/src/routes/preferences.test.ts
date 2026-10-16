@@ -13,14 +13,27 @@ describe('preferences', () => {
   it('each member reads and updates only their own preferences', async () => {
     const f = await makeFixture(t);
     const url = `/recipients/${f.recipientId}/preferences`;
+    const rows = async () =>
+      (
+        await t.pool.query(
+          'select user_id, reminders_enabled, missed_alert_enabled, missed_alert_delay_minutes from notification_preferences where recipient_id=$1 order by user_id',
+          [f.recipientId],
+        )
+      ).rows;
+    const others = async () => (await rows()).filter((r) => r.user_id !== f.viewer.id);
     const before = (await (await call(t.app, f.viewer.cookie, 'GET', url)).json()) as { preferences: { remindersEnabled: boolean } };
     expect(before.preferences.remindersEnabled).toBe(false);
+    const othersBefore = await others();
+    expect(othersBefore.length).toBeGreaterThanOrEqual(2);
     const put = await call(t.app, f.viewer.cookie, 'PUT', url, { remindersEnabled: true, missedAlertEnabled: false, missedAlertDelayMinutes: 45 });
     expect(put.status).toBe(200);
-    const mine = await t.pool.query('select * from notification_preferences where recipient_id=$1 and user_id=$2', [f.recipientId, f.viewer.id]);
-    expect(mine.rows[0]).toMatchObject({ reminders_enabled: true, missed_alert_enabled: false, missed_alert_delay_minutes: 45 });
-    const owner = await t.pool.query('select reminders_enabled from notification_preferences where recipient_id=$1 and user_id=$2', [f.recipientId, f.owner.id]);
-    expect(owner.rows[0].reminders_enabled).toBe(true); // untouched default for owners
+    const mine = (await rows()).find((r) => r.user_id === f.viewer.id);
+    expect(mine).toMatchObject({ reminders_enabled: true, missed_alert_enabled: false, missed_alert_delay_minutes: 45 });
+    expect(await others()).toEqual(othersBefore); // every other member's row is untouched
+    const after = (await (await call(t.app, f.viewer.cookie, 'GET', url)).json()) as {
+      preferences: { userId: string; remindersEnabled: boolean; missedAlertEnabled: boolean; missedAlertDelayMinutes: number };
+    };
+    expect(after.preferences).toMatchObject({ userId: f.viewer.id, remindersEnabled: true, missedAlertEnabled: false, missedAlertDelayMinutes: 45 });
   });
 
   it('rejects a delay above 120 minutes', async () => {
