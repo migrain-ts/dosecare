@@ -1,0 +1,23 @@
+{
+  "name": "@dosecare/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p .",
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx src/migrate.ts"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11"
+  },
+  "dependencies": {
+    "@dosecare/shared": "0.0.0",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  }
+}
