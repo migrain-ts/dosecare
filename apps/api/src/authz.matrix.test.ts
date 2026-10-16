@@ -23,6 +23,16 @@ export const MATRIX: Row[] = [
   { method: 'POST', pattern: '/recipients/:id/invitations', min: 'owner', url: (f) => `/recipients/${f.recipientId}/invitations`, body: { email: 'new@example.com', role: 'viewer' } },
   { method: 'GET', pattern: '/recipients/:id/invitations', min: 'owner', url: (f) => `/recipients/${f.recipientId}/invitations` },
   { method: 'DELETE', pattern: '/recipients/:id/invitations/:invitationId', min: 'owner', url: (f) => `/recipients/${f.recipientId}/invitations/${f.invitationId}` },
+  { method: 'GET', pattern: '/recipients/:id/medications', min: 'viewer', url: (f) => `/recipients/${f.recipientId}/medications` },
+  { method: 'POST', pattern: '/recipients/:id/medications', min: 'editor', url: (f) => `/recipients/${f.recipientId}/medications`, body: { name: 'N', unit: 'mg', schedules: [] } },
+  { method: 'GET', pattern: '/medications/:id', min: 'viewer', url: (f) => `/medications/${f.medicationId}` },
+  { method: 'PATCH', pattern: '/medications/:id', min: 'editor', url: (f) => `/medications/${f.medicationId}`, body: { name: 'N' } },
+  { method: 'DELETE', pattern: '/medications/:id', min: 'editor', url: (f) => `/medications/${f.medicationId}` },
+  { method: 'POST', pattern: '/medications/:id/schedules', min: 'editor', url: (f) => `/medications/${f.medicationId}/schedules`, body: { daysOfWeek: [1], timeOfDay: '08:00', quantityPerDose: 1, startDate: '2026-01-01' } },
+  { method: 'PUT', pattern: '/schedules/:id', min: 'editor', url: (f) => `/schedules/${f.scheduleId}`, body: { daysOfWeek: [1], timeOfDay: '08:00', quantityPerDose: 1, startDate: '2026-01-01' } },
+  { method: 'DELETE', pattern: '/schedules/:id', min: 'editor', url: (f) => `/schedules/${f.scheduleId}` },
+  { method: 'GET', pattern: '/medications/:id/stock', min: 'viewer', url: (f) => `/medications/${f.medicationId}/stock` },
+  { method: 'POST', pattern: '/medications/:id/stock-movements', min: 'editor', url: (f) => `/medications/${f.medicationId}/stock-movements`, body: { quantity: 5, reason: 'refill' } },
 ];
 
 // Routes that need a session but no recipient role, or no session at all.

@@ -4,6 +4,7 @@ import type { Clock, Role } from '@dosecare/shared';
 import { authRoutes } from './auth/routes';
 import { errorHandler } from './errors';
 import { invitationRoutes } from './routes/invitations';
+import { medicationRoutes } from './routes/medications';
 import { memberRoutes } from './routes/members';
 import { recipientRoutes } from './routes/recipients';
 
@@ -28,7 +29,8 @@ export function createApp(deps: Deps) {
     .route('/auth', authRoutes(deps))
     .route('/recipients', recipientRoutes())
     .route('/recipients', memberRoutes())
-    .route('/', invitationRoutes());
+    .route('/', invitationRoutes())
+    .route('/', medicationRoutes());
 }
 
 export type AppType = ReturnType<typeof createApp>;
