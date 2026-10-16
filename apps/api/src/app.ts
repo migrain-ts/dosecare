@@ -37,7 +37,7 @@ export function createApp(deps: Deps) {
     .route('/recipients', recipientRoutes())
     .route('/recipients', memberRoutes())
     .route('/recipients', preferenceRoutes())
-    .route('/', invitationRoutes())
+    .route('/', invitationRoutes(deps))
     .route('/', medicationRoutes())
     .route('/', doseRoutes());
   self = app;

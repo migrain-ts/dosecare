@@ -95,4 +95,28 @@ describe('invitations', () => {
     const left = await t.pool.query('select 1 from invitations where id=$1', [f.invitationId]);
     expect(left.rowCount).toBe(0);
   });
+
+  it('rate limits invitations per authenticated user: 20 per hour, after auth and role checks', async () => {
+    const f = await makeFixture(t);
+    const other = await makeFixture(t);
+    const send = (cookie: string | null, recipientId = f.recipientId, i = 0) =>
+      call(t.app, cookie, 'POST', `/recipients/${recipientId}/invitations`, { email: `rl${i}@example.com`, role: 'viewer' });
+    // Rejected callers neither consume the owner's budget nor get 429 themselves.
+    for (let i = 0; i < 25; i++) {
+      expect((await send(null)).status).toBe(401);
+      expect((await send(f.outsider.cookie)).status).toBe(404);
+      expect((await send(f.editor.cookie)).status).toBe(403);
+    }
+    for (let i = 0; i < 20; i++) expect((await send(f.owner.cookie, f.recipientId, i)).status).toBe(201);
+    const limited = await send(f.owner.cookie, f.recipientId, 20);
+    expect(limited.status).toBe(429);
+    expect(await limited.json()).toEqual({ error: { code: 'rate_limited', message: 'Too many attempts, try again later' } });
+    expect((await send(other.owner.cookie, other.recipientId, 0)).status).toBe(201);
+    t.clock.advanceMinutes(61);
+    try {
+      expect((await send(f.owner.cookie, f.recipientId, 21)).status).toBe(201);
+    } finally {
+      t.clock.advanceMinutes(-61);
+    }
+  });
 });

@@ -3,18 +3,21 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { schema } from '@dosecare/db';
 import { invitationCreateSchema } from '@dosecare/shared';
-import type { Env } from '../app';
+import type { Deps, Env } from '../app';
 import { requireAuth } from '../auth/middleware';
 import { requireRole, UUID } from '../authz';
 import { ApiError } from '../errors';
+import { rateLimit } from '../rate-limit';
 import { acceptInvitation, createInvitation } from '../services/invitations';
 
-export function invitationRoutes() {
+export function invitationRoutes(deps: Deps) {
+  // Keyed on the authenticated user and placed after requireRole, so rejected callers never consume budget.
+  const inviteLimiter = rateLimit({ clock: deps.clock, windowMs: 60 * 60_000, max: 20, key: (c) => `invite:${c.get('user').id}` });
   return new Hono<Env>()
     // Scoped (not '*') so unknown paths still get the standard 404 instead of 401.
     .use('/recipients/:id/invitations/*', requireAuth)
     .use('/invitations/*', requireAuth)
-    .post('/recipients/:id/invitations', requireRole('owner'), validator('json', invitationCreateSchema), async (c) => {
+    .post('/recipients/:id/invitations', requireRole('owner'), inviteLimiter, validator('json', invitationCreateSchema), async (c) => {
       const body = c.req.valid('json');
       const user = c.get('user');
       const inv = await createInvitation(c.get('deps'), { recipientId: c.get('recipientId'), invitedBy: user, ...body });
