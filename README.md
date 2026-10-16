@@ -81,7 +81,7 @@ npm run dev -w @dosecare/worker   # worker, cycle every CYCLE_SECONDS (default 3
 npm run dev -w @dosecare/web      # web on :3100, proxies /api/* to API_URL (default http://localhost:4000)
 ```
 
-Stop the Compose `api` and `web` containers first if you run them from source, as they use the same host ports. Environment variables are listed in `.env.example`; for the API, `TRUST_PROXY=1` makes the rate limiter use the rightmost `X-Forwarded-For` entry (the Next.js rewrite), so keep the API port private in production.
+Stop the Compose `api` and `web` containers first if you run them from source, as they use the same host ports. Environment variables are listed in `.env.example`; for the API, `TRUST_PROXY=1` makes the rate limiter use the rightmost `X-Forwarded-For` entry. The Next.js rewrite does not add the client address itself, so the production web server (`apps/web/server.mjs`, used by `npm run start -w @dosecare/web`) replaces `X-Forwarded-For` with the TCP peer address before proxying; only set `TRUST_PROXY=1` when every request reaches the API through that server, and keep the API port private in production (a client that can reach the API directly can choose its own rate-limit bucket). `next dev` does not do this, so keep `TRUST_PROXY` unset in development.
 
 ## Known limits
 

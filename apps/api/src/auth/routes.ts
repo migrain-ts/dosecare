@@ -13,7 +13,7 @@ import { DUMMY_HASH, hashPassword, verifyPassword } from './password';
 import { createSession, revokeSession, SESSION_TTL_MS } from './sessions';
 
 export function authRoutes(deps: import('../app').Deps) {
-  const loginLimiter = rateLimit({ clock: deps.clock, trustProxy: deps.trustProxy, windowMs: 15 * 60_000, max: 10 });
+  const loginLimiter = rateLimit({ clock: deps.clock, trustProxy: deps.trustProxy, windowMs: 15 * 60_000, max: 10, failuresOnly: true });
   const registerLimiter = rateLimit({ clock: deps.clock, trustProxy: deps.trustProxy, windowMs: 15 * 60_000, max: 50 });
 
   const issueCookie = (c: Parameters<typeof setCookie>[0], token: string) =>

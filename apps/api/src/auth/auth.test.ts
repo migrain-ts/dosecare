@@ -119,6 +119,27 @@ describe('rate limiting', () => {
     await f.close();
   });
 
+  it('counts failed logins only: successful logins in between do not consume budget', async () => {
+    const f = await makeApp();
+    try {
+      await register(f.app, 'good@example.com');
+      const good = () => call(f.app, null, 'POST', '/auth/login', { email: 'good@example.com', password: 'correct horse battery' });
+      const bad = () => call(f.app, null, 'POST', '/auth/login', { email: 'good@example.com', password: 'wrong wrong wrong' });
+      for (let i = 0; i < 15; i++) expect((await good()).status).toBe(200);
+      const statuses: number[] = [];
+      for (let i = 0; i < 9; i++) {
+        statuses.push((await bad()).status);
+        statuses.push((await good()).status);
+      }
+      expect(statuses).toEqual(Array.from({ length: 18 }, (_, i) => (i % 2 === 0 ? 401 : 200)));
+      expect((await bad()).status).toBe(401); // 10th failure
+      expect((await bad()).status).toBe(429);
+      expect((await good()).status).toBe(429);
+    } finally {
+      await f.close();
+    }
+  });
+
   it('ignores a spoofed x-forwarded-for when trustProxy is off', async () => {
     const f = await makeApp();
     const statuses: number[] = [];

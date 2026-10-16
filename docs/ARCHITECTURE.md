@@ -13,7 +13,7 @@ flowchart LR
   Worker -- SMTP --> Mail["Mailpit / SMTP server"]
 ```
 
-The browser only talks to the web app. `apps/web/next.config.ts` rewrites `/api/:path*` to `API_URL` (`http://api:4000` in Compose), so the browser sees one origin and the session cookie is first-party. The API and the worker never talk to each other: the API writes rows (for example invitation emails) into `notification_outbox`, and the worker reads them.
+The browser only talks to the web app. `apps/web/next.config.ts` rewrites `/api/:path*` to `API_URL` (`http://api:4000` in Compose), so the browser sees one origin and the session cookie is first-party. In production the web app is started by `apps/web/server.mjs`, which sets `X-Forwarded-For` to the connecting address (see Rate limiting below). The API and the worker never talk to each other: the API writes rows (for example invitation emails) into `notification_outbox`, and the worker reads them.
 
 ## Packages and apps
 
@@ -67,7 +67,7 @@ Stock is a ledger: remaining quantity is the sum of `stock_movements.quantity`. 
 - Authorization: `requireRole(min, resolver)` resolves the recipient (from the path param, or via a medication, schedule or dose), loads the caller's membership and sets `role` and `recipientId` on the context. A non-member, a malformed id or an unknown id gets 404, never 403; a member below the minimum role gets 403.
 - Validation: every JSON body and query goes through the `validator` wrapper in `apps/api/src/validate.ts`, which turns Zod failures into a 400 `invalid_request`.
 - Errors: the body is always `{ error: { code, message } }` (`errors.ts`). Unexpected errors are logged and returned as a generic 500 `internal`.
-- Rate limiting: `rate-limit.ts` is an in-memory sliding window per path and client, applied to login (10 per 15 minutes) and register (50 per 15 minutes). With `TRUST_PROXY=1` the client key is the rightmost `X-Forwarded-For` entry, which is the one the Next.js rewrite appends. Direct access to the API port could spoof that header, so keep the API private in production.
+- Rate limiting: `rate-limit.ts` is an in-memory sliding window per path and client, applied to failed logins (10 per 15 minutes; successful logins do not count) and registrations (50 per 15 minutes). With `TRUST_PROXY=1` the client key is the rightmost `X-Forwarded-For` entry. Next's external rewrite forwards request headers verbatim and never appends the client address, and neither `proxy.ts` nor a Route Handler can see the TCP peer, so the web app runs behind a tiny custom server (`apps/web/server.mjs`) that overwrites `X-Forwarded-For` with `req.socket.remoteAddress` before handing the request to Next. The API therefore always sees a value the web server set, never one the browser chose. Limits: anything in front of the web container (a load balancer, Docker Desktop's port forwarding) collapses its clients into one address, and direct access to the API port could spoof the header, so keep the API private in production.
 - Startup (`server.ts`): runs migrations, runs the demo seed when `SEED_DEMO=1`, then serves.
 
 ### Request flow: take a dose
