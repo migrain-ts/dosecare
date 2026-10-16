@@ -3,6 +3,7 @@ import type { Db } from '@dosecare/db';
 import type { Clock, Role } from '@dosecare/shared';
 import { authRoutes } from './auth/routes';
 import { errorHandler } from './errors';
+import { invitationRoutes } from './routes/invitations';
 import { memberRoutes } from './routes/members';
 import { recipientRoutes } from './routes/recipients';
 
@@ -26,7 +27,8 @@ export function createApp(deps: Deps) {
     .notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))
     .route('/auth', authRoutes(deps))
     .route('/recipients', recipientRoutes())
-    .route('/recipients', memberRoutes());
+    .route('/recipients', memberRoutes())
+    .route('/', invitationRoutes());
 }
 
 export type AppType = ReturnType<typeof createApp>;

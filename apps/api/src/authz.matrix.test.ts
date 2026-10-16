@@ -20,6 +20,9 @@ export const MATRIX: Row[] = [
   { method: 'GET', pattern: '/recipients/:id/members', min: 'viewer', url: (f) => `/recipients/${f.recipientId}/members` },
   { method: 'PATCH', pattern: '/recipients/:id/members/:userId', min: 'owner', url: (f) => `/recipients/${f.recipientId}/members/${f.viewer.id}`, body: { role: 'editor' } },
   { method: 'DELETE', pattern: '/recipients/:id/members/:userId', min: 'owner', url: (f) => `/recipients/${f.recipientId}/members/${f.viewer.id}` },
+  { method: 'POST', pattern: '/recipients/:id/invitations', min: 'owner', url: (f) => `/recipients/${f.recipientId}/invitations`, body: { email: 'new@example.com', role: 'viewer' } },
+  { method: 'GET', pattern: '/recipients/:id/invitations', min: 'owner', url: (f) => `/recipients/${f.recipientId}/invitations` },
+  { method: 'DELETE', pattern: '/recipients/:id/invitations/:invitationId', min: 'owner', url: (f) => `/recipients/${f.recipientId}/invitations/${f.invitationId}` },
 ];
 
 // Routes that need a session but no recipient role, or no session at all.
@@ -50,7 +53,6 @@ describe('route coverage', () => {
   it('every non-public exempt route rejects anonymous callers with 401', async () => {
     for (const key of NO_ROLE_ROUTES) {
       if (PUBLIC_ROUTES.has(key)) continue;
-      if (key === 'POST /invitations/:token/accept') continue; // added in Task 6
       const [method, pattern] = key.split(' ') as [string, string];
       const path = pattern.replace(':token', 'x');
       const res = await call(t.app, null, method, path, method === 'POST' ? {} : undefined);
