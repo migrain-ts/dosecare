@@ -1,12 +1,19 @@
 import { Hono } from 'hono';
 import type { Db } from '@dosecare/db';
-import type { Clock } from '@dosecare/shared';
+import type { Clock, Role } from '@dosecare/shared';
 import { authRoutes } from './auth/routes';
 import { errorHandler } from './errors';
+import { memberRoutes } from './routes/members';
+import { recipientRoutes } from './routes/recipients';
 
-export type Deps = { db: Db; clock: Clock; secureCookies?: boolean; trustProxy?: boolean };
+export type Deps = { db: Db; clock: Clock; appUrl: string; secureCookies?: boolean; trustProxy?: boolean };
 export type Env = {
-  Variables: { user: { id: string; email: string; name: string }; deps: Deps };
+  Variables: {
+    user: { id: string; email: string; name: string };
+    deps: Deps;
+    role: Role;
+    recipientId: string;
+  };
 };
 
 export function createApp(deps: Deps) {
@@ -17,7 +24,9 @@ export function createApp(deps: Deps) {
     })
     .onError(errorHandler)
     .notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))
-    .route('/auth', authRoutes(deps));
+    .route('/auth', authRoutes(deps))
+    .route('/recipients', recipientRoutes())
+    .route('/recipients', memberRoutes());
 }
 
 export type AppType = ReturnType<typeof createApp>;
