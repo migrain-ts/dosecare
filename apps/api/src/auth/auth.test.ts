@@ -90,8 +90,11 @@ describe('login and sessions', () => {
   it('rejects an expired session and an unknown token', async () => {
     const { cookie } = await register(t.app);
     t.clock.advanceMinutes(31 * 24 * 60);
-    expect((await call(t.app, cookie, 'GET', '/auth/me')).status).toBe(401);
-    t.clock.advanceMinutes(-31 * 24 * 60);
+    try {
+      expect((await call(t.app, cookie, 'GET', '/auth/me')).status).toBe(401);
+    } finally {
+      t.clock.advanceMinutes(-31 * 24 * 60);
+    }
     expect((await call(t.app, 'sid=not-a-token', 'GET', '/auth/me')).status).toBe(401);
     expect((await call(t.app, null, 'GET', '/auth/me')).status).toBe(401);
   });
