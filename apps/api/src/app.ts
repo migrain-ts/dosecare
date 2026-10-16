@@ -3,6 +3,7 @@ import type { Db } from '@dosecare/db';
 import type { Clock, Role } from '@dosecare/shared';
 import { authRoutes } from './auth/routes';
 import { errorHandler } from './errors';
+import { doseRoutes } from './routes/doses';
 import { invitationRoutes } from './routes/invitations';
 import { medicationRoutes } from './routes/medications';
 import { memberRoutes } from './routes/members';
@@ -30,7 +31,8 @@ export function createApp(deps: Deps) {
     .route('/recipients', recipientRoutes())
     .route('/recipients', memberRoutes())
     .route('/', invitationRoutes())
-    .route('/', medicationRoutes());
+    .route('/', medicationRoutes())
+    .route('/', doseRoutes());
 }
 
 export type AppType = ReturnType<typeof createApp>;

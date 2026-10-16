@@ -33,6 +33,9 @@ export const MATRIX: Row[] = [
   { method: 'DELETE', pattern: '/schedules/:id', min: 'editor', url: (f) => `/schedules/${f.scheduleId}` },
   { method: 'GET', pattern: '/medications/:id/stock', min: 'viewer', url: (f) => `/medications/${f.medicationId}/stock` },
   { method: 'POST', pattern: '/medications/:id/stock-movements', min: 'editor', url: (f) => `/medications/${f.medicationId}/stock-movements`, body: { quantity: 5, reason: 'refill' } },
+  { method: 'GET', pattern: '/recipients/:id/doses', min: 'viewer', url: (f) => `/recipients/${f.recipientId}/doses?from=2026-01-05&to=2026-01-06` },
+  { method: 'POST', pattern: '/doses/:id/take', min: 'editor', url: (f) => `/doses/${f.doseId}/take` },
+  { method: 'POST', pattern: '/doses/:id/skip', min: 'editor', url: (f) => `/doses/${f.doseId}/skip` },
 ];
 
 // Routes that need a session but no recipient role, or no session at all.
