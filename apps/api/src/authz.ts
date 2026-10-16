@@ -41,8 +41,9 @@ export const fromSchedule = viaTable(async (db, id) => {
 
 export function requireRole(min: Role, resolve: Resolver = fromParam()): MiddlewareHandler<Env> {
   return async (c, next) => {
-    const recipientId = await resolve(c);
-    if (!recipientId || !UUID.test(recipientId)) throw new ApiError(404, 'not_found', 'Not found');
+    const resolved = await resolve(c);
+    if (!resolved || !UUID.test(resolved)) throw new ApiError(404, 'not_found', 'Not found');
+    const recipientId = resolved.toLowerCase();
     const [m] = await c
       .get('deps')
       .db.select({ role: schema.recipientMembers.role })

@@ -40,7 +40,7 @@ export function memberRoutes() {
       return c.json({ members });
     })
     .patch('/:id/members/:userId', requireRole('owner'), validator('json', memberUpdateSchema), async (c) => {
-      const userId = c.req.param('userId');
+      const userId = c.req.param('userId').toLowerCase();
       if (!UUID.test(userId)) throw new ApiError(404, 'not_found', 'Not found');
       const { role } = c.req.valid('json');
       const recipientId = c.get('recipientId');
@@ -50,7 +50,7 @@ export function memberRoutes() {
           .from(schema.recipientMembers)
           .where(and(eq(schema.recipientMembers.recipientId, recipientId), eq(schema.recipientMembers.userId, userId)));
         if (!target) throw new ApiError(404, 'not_found', 'Not found');
-        if (target.role === 'owner' && role !== 'owner') await assertNotLastOwner(tx, recipientId, userId);
+        if (target.role === 'owner' && role !== 'owner') await assertNotLastOwner(tx, recipientId, target.userId);
         await tx
           .update(schema.recipientMembers)
           .set({ role })
@@ -59,7 +59,7 @@ export function memberRoutes() {
       return c.json({ userId, role });
     })
     .delete('/:id/members/:userId', requireRole('owner'), async (c) => {
-      const userId = c.req.param('userId');
+      const userId = c.req.param('userId').toLowerCase();
       if (!UUID.test(userId)) throw new ApiError(404, 'not_found', 'Not found');
       const recipientId = c.get('recipientId');
       await c.get('deps').db.transaction(async (tx) => {
@@ -68,7 +68,7 @@ export function memberRoutes() {
           .from(schema.recipientMembers)
           .where(and(eq(schema.recipientMembers.recipientId, recipientId), eq(schema.recipientMembers.userId, userId)));
         if (!target) throw new ApiError(404, 'not_found', 'Not found');
-        if (target.role === 'owner') await assertNotLastOwner(tx, recipientId, userId);
+        if (target.role === 'owner') await assertNotLastOwner(tx, recipientId, target.userId);
         await tx
           .delete(schema.recipientMembers)
           .where(and(eq(schema.recipientMembers.recipientId, recipientId), eq(schema.recipientMembers.userId, userId)));

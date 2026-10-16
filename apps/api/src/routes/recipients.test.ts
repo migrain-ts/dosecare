@@ -49,6 +49,19 @@ describe('recipients', () => {
     expect((await call(t.app, f.owner.cookie, 'PATCH', base, { role: 'editor' })).status).toBe(200);
   });
 
+  it('last-owner guard holds for an upper-case user id', async () => {
+    const f = await makeFixture(t);
+    const base = `/recipients/${f.recipientId}/members/${f.owner.id.toUpperCase()}`;
+    const patch = await call(t.app, f.owner.cookie, 'PATCH', base, { role: 'editor' });
+    expect(patch.status).toBe(409);
+    expect(((await patch.json()) as { error: { code: string } }).error.code).toBe('last_owner');
+    const del = await call(t.app, f.owner.cookie, 'DELETE', base);
+    expect(del.status).toBe(409);
+    expect(((await del.json()) as { error: { code: string } }).error.code).toBe('last_owner');
+    const r = await t.pool.query('select role from recipient_members where recipient_id=$1 and user_id=$2', [f.recipientId, f.owner.id]);
+    expect(r.rows[0].role).toBe('owner');
+  });
+
   it('removing a member also removes their notification preferences', async () => {
     const f = await makeFixture(t);
     expect((await call(t.app, f.owner.cookie, 'DELETE', `/recipients/${f.recipientId}/members/${f.viewer.id}`)).status).toBe(204);
