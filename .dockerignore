@@ -5,3 +5,8 @@ node_modules
 .git
 docs
 e2e
+.env*
+.superpowers
+playwright-report
+test-results
+docker-compose.yml

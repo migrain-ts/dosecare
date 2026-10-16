@@ -1,3 +1,5 @@
+# Local demo stack only: fictional data and a KNOWN demo password (SEED_DEMO=1 seeds demo users).
+# All ports are bound to loopback. Never expose this stack to a network.
 services:
   postgres:
     image: postgres:17
@@ -5,7 +7,7 @@ services:
       POSTGRES_USER: dosecare
       POSTGRES_PASSWORD: dosecare
       POSTGRES_DB: dosecare
-    ports: ["5440:5432"]
+    ports: ["127.0.0.1:5440:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dosecare"]
@@ -13,7 +15,7 @@ services:
       retries: 20
   mailpit:
     image: axllent/mailpit
-    ports: ["1026:1025", "8026:8025"]
+    ports: ["127.0.0.1:1026:1025", "127.0.0.1:8026:8025"]
   api:
     build: { context: ., dockerfile: docker/node.Dockerfile, args: { APP: api } }
     environment:
@@ -24,7 +26,7 @@ services:
       INSECURE_COOKIES: "1"
       TRUST_PROXY: "1"
       SEED_DEMO: "1"
-    ports: ["4000:4000"]
+    ports: ["127.0.0.1:4000:4000"]
     depends_on: { postgres: { condition: service_healthy } }
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4000/openapi.json').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -43,7 +45,7 @@ services:
       mailpit: { condition: service_started }
   web:
     build: { context: ., dockerfile: docker/web.Dockerfile, args: { API_URL: "http://api:4000" } }
-    ports: ["3100:3000"]
+    ports: ["127.0.0.1:3100:3000"]
     depends_on: { api: { condition: service_healthy } }
 volumes:
   pgdata:

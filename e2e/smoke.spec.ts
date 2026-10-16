@@ -14,7 +14,8 @@ test('register, add a medication, see the dose today and record it as taken', as
   await page.getByLabel('Medication name').fill('Aspirin');
   const now = new Date();
   await page.getByLabel(/^Time/).fill(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
-  await page.keyboard.press('Enter'); // confirms the time picker and submits the form
+  await page.getByLabel('Medication name').click(); // blur the time picker so the typed value is committed
+  await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText(/Every day at \d\d:\d\d/)).toBeVisible();
 
   await page.goto('/today');
@@ -24,5 +25,6 @@ test('register, add a medication, see the dose today and record it as taken', as
     await expect(taken).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 60_000, intervals: [3_000] });
   await taken.click();
-  await expect(page.getByText('Taken', { exact: true }).first()).toBeVisible();
+  await expect(taken).toBeHidden();
+  await expect(page.locator('.ant-tag', { hasText: 'Taken' }).first()).toBeVisible();
 });
