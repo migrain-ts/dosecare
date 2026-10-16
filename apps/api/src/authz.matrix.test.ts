@@ -36,6 +36,8 @@ export const MATRIX: Row[] = [
   { method: 'GET', pattern: '/recipients/:id/doses', min: 'viewer', url: (f) => `/recipients/${f.recipientId}/doses?from=2026-01-05&to=2026-01-06` },
   { method: 'POST', pattern: '/doses/:id/take', min: 'editor', url: (f) => `/doses/${f.doseId}/take` },
   { method: 'POST', pattern: '/doses/:id/skip', min: 'editor', url: (f) => `/doses/${f.doseId}/skip` },
+  { method: 'GET', pattern: '/recipients/:id/preferences', min: 'viewer', url: (f) => `/recipients/${f.recipientId}/preferences` },
+  { method: 'PUT', pattern: '/recipients/:id/preferences', min: 'viewer', url: (f) => `/recipients/${f.recipientId}/preferences`, body: { remindersEnabled: true, missedAlertEnabled: true, missedAlertDelayMinutes: 30 } },
 ];
 
 // Routes that need a session but no recipient role, or no session at all.
