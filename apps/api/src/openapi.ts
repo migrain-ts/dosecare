@@ -61,4 +61,4 @@ export function buildOpenApi(routes: { method: string; path: string }[]) {
 
 export const DOCS_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>DoseCare API</title></head>
 <body><script id="api-reference" data-url="/openapi.json"></script>
-<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script></body></html>`;
+<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.4/dist/browser/standalone.js" integrity="sha384-omTRdD9MbjA1vm12DqRUVvqJlr3VzSixvAdF1Jruu9AJOiJKyTKraIB6DyX+m10M" crossorigin="anonymous"></script></body></html>`;

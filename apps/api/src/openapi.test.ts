@@ -37,6 +37,10 @@ describe('OpenAPI', () => {
     const res = await t.app.request('/docs');
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
+    const html = await res.text();
+    expect(html).toContain('https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.4/');
+    expect(html).toMatch(/integrity="sha384-[A-Za-z0-9+/=]{64}"/);
+    expect(html).toContain('crossorigin="anonymous"');
   });
 
   it('keeps unknown routes on the standard 404', async () => {
