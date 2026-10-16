@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: dosecare
+      POSTGRES_PASSWORD: dosecare
+      POSTGRES_DB: dosecare
+    ports: ["5433:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dosecare"]
+      interval: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit
+    ports: ["1026:1025", "8026:8025"]
