@@ -20,3 +20,15 @@ export function todayRange(now: Date, timeZone: string) {
   const d = localDate(now, timeZone);
   return { from: d, to: d };
 }
+
+export const localDateChanged = (a: Date, b: Date, timeZone: string) => localDate(a, timeZone) !== localDate(b, timeZone);
+
+/**
+ * Rule: 'error' only when the request failed and there is no data to show; stale data from an
+ * earlier success keeps being shown. No data and no error yet counts as 'loading'.
+ */
+export function viewState(q: { isLoading: boolean; isError: boolean; data?: readonly unknown[] }): 'loading' | 'error' | 'empty' | 'list' {
+  if (q.data) return q.data.length === 0 ? 'empty' : 'list';
+  if (q.isError) return 'error';
+  return 'loading';
+}
