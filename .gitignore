@@ -7,3 +7,6 @@ test-results
 playwright-report
 .superpowers
 .vitest
+
+next-env.d.ts
+*.tsbuildinfo

@@ -1,0 +1,34 @@
+{
+  "name": "@dosecare/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test": "vitest run",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@dosecare/api": "0.0.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "postcss": "8.5.30",
+    "tailwindcss": "4.3.3"
+  },
+  "dependencies": {
+    "@ant-design/cssinjs": "2.1.2",
+    "@ant-design/nextjs-registry": "1.3.0",
+    "@dosecare/shared": "0.0.0",
+    "@tanstack/react-query": "5.104.3",
+    "antd": "6.6.6",
+    "dayjs": "1.11.23",
+    "hono": "4.13.13",
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

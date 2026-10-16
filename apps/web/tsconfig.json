@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "jsx": "preserve", "lib": ["dom", "dom.iterable", "ES2023"], "allowJs": false, "incremental": true, "plugins": [{ "name": "next" }], "paths": { "@/*": ["./src/*"] } },
+  "include": ["next-env.d.ts", "src", ".next/types/**/*.ts"]
+}
