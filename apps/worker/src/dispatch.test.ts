@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FakeClock } from '@dosecare/shared';
 import { createTestDb } from '@dosecare/db';
 import { dispatch } from './dispatch';
-import { FakeMailer } from './mailer';
+import { FakeMailer, type Mailer, type Message } from './mailer';
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
 beforeAll(async () => {
@@ -55,7 +55,7 @@ describe('dispatch', () => {
     const after = await get(key);
     expect(after.status).toBe('sent');
     expect(after.payload.token).toBeUndefined();
-    expect(JSON.stringify(after.payload)).not.toContain('"secret"');
+    expect(JSON.stringify(after.payload)).not.toContain('secret');
   });
 
   it('a failed send is retried later with exponential backoff and jitter, and keeps the error', async () => {
@@ -109,5 +109,79 @@ describe('dispatch', () => {
     const ids = mailer.sent.map((m) => m.messageId).filter((id) => keys.includes(id));
     expect(ids).toHaveLength(30);
     expect(new Set(ids).size).toBe(30);
+  });
+
+  // Mailer whose first send of `key` runs a second worker's dispatch (after the visibility timeout) before settling.
+  const staleMailer = (key: string, clock: FakeClock, inner: Mailer, settle: 'throw' | 'resolve'): Mailer => {
+    let first = true;
+    return {
+      async send(m: Message) {
+        if (m.messageId === key && first) {
+          first = false;
+          clock.advanceMs(61_000);
+          await dispatch(t.db, { mailer: inner, clock, random: () => 0.5 });
+          if (settle === 'throw') throw new Error('late failure');
+        }
+      },
+    };
+  };
+
+  it('a late failure from a stale worker does not overwrite a row another worker already sent', async () => {
+    const key = await row();
+    const clock = new FakeClock(NOW);
+    const inner = new FakeMailer();
+    const r = await dispatch(t.db, { mailer: staleMailer(key, clock, inner, 'throw'), clock, random: () => 0.5 });
+    expect(inner.sent.filter((m) => m.messageId === key)).toHaveLength(1);
+    expect(await get(key)).toMatchObject({ status: 'sent', attempts: 2, last_error: null });
+    expect(r.retried).toBe(0);
+  });
+
+  it('a late success from a stale worker does not clobber a row another worker already failed over', async () => {
+    const key = await row();
+    const clock = new FakeClock(NOW);
+    const inner = new FakeMailer();
+    inner.failWith = new Error('inner fail');
+    const r = await dispatch(t.db, { mailer: staleMailer(key, clock, inner, 'resolve'), clock, random: () => 0.5 });
+    expect(await get(key)).toMatchObject({ status: 'pending', attempts: 2, last_error: 'inner fail', sent_at: null });
+    expect(r.sent).toBe(0);
+  });
+
+  it('uses the actual time for sent_at, not the batch start', async () => {
+    const key = await row();
+    const clock = new FakeClock(NOW);
+    const mailer = new FakeMailer();
+    const orig = mailer.send.bind(mailer);
+    mailer.send = async (m) => {
+      if (m.messageId === key) clock.advanceMs(10_000);
+      await orig(m);
+    };
+    await dispatch(t.db, { mailer, clock, random: () => 0.5 });
+    expect((await get(key)).sent_at.toISOString()).toBe(new Date(NOW.getTime() + 10_000).toISOString());
+  });
+
+  it('a row stuck in sending with attempts at the maximum becomes failed and is not sent; one below is reclaimed', async () => {
+    const past = new Date(NOW.getTime() - 1000);
+    const dead = await row({ status: 'sending', attempts: 5, lockedUntil: past });
+    const alive = await row({ status: 'sending', attempts: 4, lockedUntil: past });
+    const d = deps();
+    await dispatch(t.db, d, { maxAttempts: 5 });
+    expect(d.mailer.sent.find((m) => m.messageId === dead)).toBeUndefined();
+    expect(await get(dead)).toMatchObject({ status: 'failed', attempts: 5, locked_until: null, last_error: 'worker crashed while sending (max attempts reached)' });
+    expect(d.mailer.sent.find((m) => m.messageId === alive)).toBeDefined();
+    expect((await get(alive)).status).toBe('sent');
+  });
+
+  it('claim contention: many concurrent dispatchers send every row exactly once', async () => {
+    const keys: string[] = [];
+    for (let i = 0; i < 60; i++) keys.push(await row());
+    const mailer = new FakeMailer();
+    const clock = new FakeClock(NOW);
+    for (let round = 0; round < 3; round++) {
+      await Promise.all(Array.from({ length: 8 }, () => dispatch(t.db, { mailer, clock, random: () => 0.5 }, { batchSize: 5 })));
+    }
+    // drain whatever the rounds left (60 rows, 8*5*3 = 120 capacity, so normally nothing)
+    const ids = mailer.sent.map((m) => m.messageId).filter((id) => keys.includes(id));
+    expect(ids).toHaveLength(60);
+    expect(new Set(ids).size).toBe(60);
   });
 });

@@ -16,11 +16,16 @@ export async function dispatch(
   const now = deps.clock.now();
   const lockedUntil = new Date(now.getTime() + visibilityMs);
 
+  await db.execute(sql`
+    update notification_outbox
+    set status = 'failed', locked_until = null, last_error = 'worker crashed while sending (max attempts reached)'
+    where status = 'sending' and locked_until <= ${now}::timestamptz and attempts >= ${maxAttempts}`);
+
   const claimed = await db.execute(sql`
     with c as (
       select id from notification_outbox
       where (status = 'pending' and next_attempt_at <= ${now}::timestamptz)
-         or (status = 'sending' and locked_until <= ${now}::timestamptz)
+         or (status = 'sending' and locked_until <= ${now}::timestamptz and attempts < ${maxAttempts})
       order by next_attempt_at
       limit ${batchSize}
       for update skip locked
@@ -35,24 +40,26 @@ export async function dispatch(
     try {
       const email = renderEmail(row.kind, row.payload);
       await deps.mailer.send({ to: row.to_email, messageId: row.dedupe_key, ...email });
-      await db.execute(sql`
+      const done = await db.execute(sql`
         update notification_outbox
-        set status = 'sent', sent_at = ${now}::timestamptz, locked_until = null, last_error = null, payload = payload - 'token'
-        where id = ${row.id}`);
-      result.sent++;
+        set status = 'sent', sent_at = ${deps.clock.now()}::timestamptz, locked_until = null, last_error = null, payload = payload - 'token' - 'link'
+        where id = ${row.id} and status = 'sending' and attempts = ${row.attempts}`);
+      if (done.rowCount) result.sent++;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (row.attempts >= maxAttempts) {
-        await db.execute(sql`update notification_outbox set status = 'failed', locked_until = null, last_error = ${message} where id = ${row.id}`);
-        result.failed++;
+        const done = await db.execute(sql`
+          update notification_outbox set status = 'failed', locked_until = null, last_error = ${message}
+          where id = ${row.id} and status = 'sending' and attempts = ${row.attempts}`);
+        if (done.rowCount) result.failed++;
       } else {
         const base = Math.min(30_000 * 2 ** (row.attempts - 1), 3_600_000);
-        const next = new Date(now.getTime() + base * (0.8 + 0.4 * random()));
-        await db.execute(sql`
+        const next = new Date(deps.clock.now().getTime() + base * (0.8 + 0.4 * random()));
+        const done = await db.execute(sql`
           update notification_outbox
           set status = 'pending', locked_until = null, last_error = ${message}, next_attempt_at = ${next}::timestamptz
-          where id = ${row.id}`);
-        result.retried++;
+          where id = ${row.id} and status = 'sending' and attempts = ${row.attempts}`);
+        if (done.rowCount) result.retried++;
       }
     }
   }

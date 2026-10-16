@@ -19,7 +19,7 @@ export class FakeMailer implements Mailer {
 export class SmtpMailer implements Mailer {
   private transport;
   constructor(private o: { host: string; port: number; from: string }) {
-    this.transport = nodemailer.createTransport({ host: o.host, port: o.port, secure: false });
+    this.transport = nodemailer.createTransport({ host: o.host, port: o.port, secure: false, connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 15_000 });
   }
   async send(m: Message) {
     await this.transport.sendMail({
