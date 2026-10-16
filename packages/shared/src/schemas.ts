@@ -59,10 +59,12 @@ export const medicationUpdateSchema = z.object({
   unit: z.string().trim().min(1).max(20).optional(),
 });
 
-export const stockMovementSchema = z.object({
-  quantity: z.number().refine((n) => n !== 0, 'Quantity must not be zero'),
-  reason: z.enum(['refill', 'adjustment']),
-});
+export const stockMovementSchema = z
+  .object({
+    quantity: z.number().refine((n) => n !== 0, 'Quantity must not be zero'),
+    reason: z.enum(['refill', 'adjustment']),
+  })
+  .refine((m) => m.reason !== 'refill' || m.quantity > 0, { path: ['quantity'], message: 'A refill must be positive' });
 
 export const preferencesSchema = z.object({
   remindersEnabled: z.boolean(),

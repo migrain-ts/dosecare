@@ -29,6 +29,12 @@ describe('schemas', () => {
     expect(stockMovementSchema.safeParse({ quantity: 0, reason: 'refill' }).success).toBe(false);
     expect(stockMovementSchema.safeParse({ quantity: -1, reason: 'dose' }).success).toBe(false);
   });
+  it('a refill must be positive; an adjustment stays signed and non-zero', () => {
+    expect(stockMovementSchema.safeParse({ quantity: -5, reason: 'refill' }).success).toBe(false);
+    expect(stockMovementSchema.safeParse({ quantity: -5, reason: 'adjustment' }).success).toBe(true);
+    expect(stockMovementSchema.safeParse({ quantity: 5, reason: 'adjustment' }).success).toBe(true);
+    expect(stockMovementSchema.safeParse({ quantity: 0, reason: 'adjustment' }).success).toBe(false);
+  });
   it('preferences bound the alert delay to 0..120', () => {
     const p = { remindersEnabled: true, missedAlertEnabled: true, missedAlertDelayMinutes: 30 };
     expect(preferencesSchema.safeParse(p).success).toBe(true);

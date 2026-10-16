@@ -92,4 +92,14 @@ describe('stock', () => {
     expect((await call(t.app, f.editor.cookie, 'POST', `/medications/${f.medicationId}/stock-movements`, { quantity: 0, reason: 'refill' })).status).toBe(400);
     expect((await call(t.app, f.editor.cookie, 'POST', `/medications/${f.medicationId}/stock-movements`, { quantity: 1, reason: 'dose' })).status).toBe(400);
   });
+
+  it('rejects a negative refill with the standard 400 body', async () => {
+    const f = await makeFixture(t);
+    const res = await call(t.app, f.editor.cookie, 'POST', `/medications/${f.medicationId}/stock-movements`, { quantity: -5, reason: 'refill' });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(Object.keys(body)).toEqual(['error']);
+    expect(body.error.code).toBe('invalid_request');
+    expect(body.error.message).toContain('quantity');
+  });
 });
