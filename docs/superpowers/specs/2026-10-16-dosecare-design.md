@@ -42,8 +42,8 @@ Stack: TypeScript everywhere, Hono, Drizzle (versions pinned), Zod, PostgreSQL, 
 - `medications`: recipient, name, strength, unit, active, start and end dates.
 - `schedules`: medication, days of week, local time of day, quantity per dose, validity period.
 - `stock_movements`: medication, signed quantity, reason `refill | dose | adjustment`. Remaining stock is the sum.
-- `dose_events`: schedule, medication, recipient, `scheduled_at` (UTC), status `pending | taken | skipped | missed`, taken_at, recorded_by. Unique `(schedule_id, scheduled_at)`.
-- `notification_outbox`: kind `reminder | missed_alert | low_stock | invitation`, target user, payload, `dedupe_key` unique, status `pending | sending | sent | failed`, attempts, next_attempt_at, locked_until.
+- `dose_events`: schedule (nullable, kept for history if the schedule is deleted), medication, recipient, `quantity` (snapshot of the schedule quantity), `scheduled_at` (UTC), status `pending | taken | skipped | missed`, taken_at, recorded_by. Unique `(schedule_id, scheduled_at)`.
+- `notification_outbox`: kind `reminder | missed_alert | low_stock | invitation`, `to_email` (resolved at enqueue time, so invitations to people without an account work), optional user, payload, `dedupe_key` unique, status `pending | sending | sent | failed`, attempts, next_attempt_at, locked_until.
 - `notification_preferences`: per member and recipient, reminders on/off, missed-alert on/off, alert delay (minutes, at most the grace period).
 
 Decisions: schedules are entered in the recipient's local time and converted to UTC when doses are generated; stock is a ledger, not a counter; doses are materialized so each has a status and history.
