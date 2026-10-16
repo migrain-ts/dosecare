@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
 import { createDb, runMigrations } from '@dosecare/db';
-import { SystemClock } from '@dosecare/shared';
+import { numberFromEnv, SystemClock } from '@dosecare/shared';
 import { createApp } from './app';
 
 const url = process.env.DATABASE_URL;
@@ -18,5 +18,5 @@ const app = createApp({
   secureCookies: process.env.NODE_ENV === 'production' && process.env.INSECURE_COOKIES !== '1',
   trustProxy: process.env.TRUST_PROXY === '1',
 });
-const port = Number(process.env.API_PORT ?? 4000);
+const port = numberFromEnv(process.env.API_PORT, 4000);
 serve({ fetch: app.fetch, port }, () => console.log(`[api] listening on :${port}`));

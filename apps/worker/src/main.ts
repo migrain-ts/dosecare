@@ -1,5 +1,5 @@
 import { createDb } from '@dosecare/db';
-import { SystemClock } from '@dosecare/shared';
+import { numberFromEnv, SystemClock } from '@dosecare/shared';
 import { runCycle } from './cycle';
 import { createLifecycle } from './lifecycle';
 import { SmtpMailer } from './mailer';
@@ -13,7 +13,7 @@ const mailer = new SmtpMailer({
   from: process.env.MAIL_FROM ?? 'DoseCare <no-reply@dosecare.local>',
 });
 const clock = new SystemClock();
-const everyMs = Number(process.env.CYCLE_SECONDS ?? 30) * 1000;
+const everyMs = numberFromEnv(process.env.CYCLE_SECONDS, 30) * 1000;
 
 const lifecycle = createLifecycle({
   pool,
